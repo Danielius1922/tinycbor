@@ -20,29 +20,55 @@ Build TinyCBOR with CMake
 ```bash
 mkdir build
 cd build
-cmake --build ..
+cmake -DCMAKE_BUILD_TYPE=Release ..
+cmake --build .
 ```
 
 ### Compilation options
 
+To configure your build use supported options by add them to the `cmake` invocation.
+
 * Debug build:
   
 ```bash
-cmake --build -DCMAKE_BUILD_TYPE=Debug ..
+cmake -DCMAKE_BUILD_TYPE=Debug ..
 ```
 
-* Release build:
+* Freestanding build (by default OFF):
   
 ```bash
-cmake --build -DCMAKE_BUILD_TYPE=Release ..
+cmake -DTINYCBOR_FREESTANDING_BUILD_ENABLED=ON ..
 ```
 
+* Build static library (by default ON):
 
-TODO
+```bash
+cmake -DUSE_STATIC_TINYCBOR_LIBRARY=ON ..
+```
+
+* Build shared library (by default OFF):
+
+```bash
+cmake -DUSE_SHARED_TINYCBOR_LIBRARY=ON ..
+```
+
+* Enable building of `json2cbor` and `cbordump`:
+
+```bash
+cmake -DENABLE_TOOLS=ON ..
+```
+
+The `json2cbor` tool is dependend on [cJSON](https://github.com/DaveGamble/cJSON) being available on your system.
 
 ### Testing
 
-TODO
+To build and run unit tests execute:
+
+```bash
+cmake -DENABLE_TESTING=ON ..
+cmake --build .
+ctest .
+```
 
 ### Installation
 

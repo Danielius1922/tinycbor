@@ -23,27 +23,28 @@
 ****************************************************************************/
 
 #define _XOPEN_SOURCE 700
-#define  _DARWIN_C_SOURCE 1         /* need MAP_ANON */
+#define _DARWIN_C_SOURCE 1 /* need MAP_ANON */
 #include <QtTest>
 #include "cbor.h"
 #include <stdio.h>
 #include <stdarg.h>
 
 #if defined(Q_OS_UNIX)
-#  include <sys/mman.h>
-#  include <unistd.h>
+#include <sys/mman.h>
+#include <unistd.h>
 #elif defined(Q_OS_WIN)
-#  define WIN32_LEAN_AND_MEAN 1
-#  define NOMINMAX 1
-#  include <windows.h>
+#define WIN32_LEAN_AND_MEAN 1
+#define NOMINMAX 1
+#include <windows.h>
 #endif
 
-
-namespace QTest {
-template<> char *toString<CborError>(const CborError &err)
+namespace QTest
 {
-    return qstrdup(cbor_error_string(err));
-}
+    template <>
+    char *toString<CborError>(const CborError &err)
+    {
+        return qstrdup(cbor_error_string(err));
+    }
 }
 
 class tst_Parser : public QObject
@@ -142,7 +143,7 @@ struct ParserWrapper
         return cbor_parser_init(data, len, flags, &parser, &first);
     }
     uint8_t *begin() { return data; }
-    uint8_t *end()   { return data + len; }
+    uint8_t *end() { return data + len; }
 
     uint8_t *allocateMemory(size_t);
     void freeMemory();
@@ -151,7 +152,7 @@ struct ParserWrapper
     static inline size_t mmapAllocation(size_t n)
     {
         // round up and add one page
-        return (n + 2*PageSize) & ~(PageSize - 1);
+        return (n + 2 * PageSize) & ~(PageSize - 1);
     }
     static bool shouldUseMmap();
 };
@@ -165,7 +166,8 @@ bool ParserWrapper::shouldUseMmap()
 uint8_t *ParserWrapper::allocateMemory(size_t n)
 {
     len = n;
-    if (shouldUseMmap()) {
+    if (shouldUseMmap())
+    {
         size_t alloc = mmapAllocation(n);
 #if defined(Q_OS_UNIX)
         realdata = mmap(nullptr, alloc, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANON, -1, 0);
@@ -199,8 +201,10 @@ uint8_t *ParserWrapper::allocateMemory(size_t n)
 
 void ParserWrapper::freeMemory()
 {
-    if (shouldUseMmap()) {
-        if (realdata) {
+    if (shouldUseMmap())
+    {
+        if (realdata)
+        {
 #if defined(Q_OS_UNIX)
             size_t alloc = mmapAllocation(len);
             munmap(realdata, alloc);
@@ -237,7 +241,8 @@ CborError parseOneChunk(CborValue *it, QString *parsed)
 {
     CborError err;
     CborType ourType = cbor_value_get_type(it);
-    if (ourType == CborByteStringType) {
+    if (ourType == CborByteStringType)
+    {
         const uint8_t *bytes;
         size_t len;
         err = cbor_value_get_byte_string_chunk(it, &bytes, &len, it);
@@ -248,7 +253,9 @@ CborError parseOneChunk(CborValue *it, QString *parsed)
             *parsed = QString::fromLatin1("h'" +
                                           QByteArray::fromRawData(reinterpret_cast<const char *>(bytes), len).toHex() +
                                           '\'');
-    } else if (ourType == CborTextStringType) {
+    }
+    else if (ourType == CborTextStringType)
+    {
         const char *text;
         size_t len;
         err = cbor_value_get_text_string_chunk(it, &text, &len, it);
@@ -257,7 +264,9 @@ CborError parseOneChunk(CborValue *it, QString *parsed)
 
         if (text)
             *parsed = '"' + QString::fromUtf8(text, len) + '"';
-    } else {
+    }
+    else
+    {
         Q_ASSERT(false);
     }
     return err;
@@ -279,34 +288,48 @@ void compareOne_real(const QByteArray &data, const QString &expected, int line, 
     CborError err = w.init(data);
     QVERIFY2(!err, QByteArray::number(line) + ": Got error \"" + cbor_error_string(err) + "\"");
 
-    if (cbor_value_get_type(&w.first) == CborArrayType) {
+    if (cbor_value_get_type(&w.first) == CborArrayType)
+    {
         size_t len;
-        if (n >= 0) {
+        if (n >= 0)
+        {
             QVERIFY(cbor_value_is_length_known(&w.first));
             QCOMPARE(cbor_value_get_array_length(&w.first, &len), CborNoError);
             QCOMPARE(len, size_t(len));
-        } else {
+        }
+        else
+        {
             QVERIFY(!cbor_value_is_length_known(&w.first));
             QCOMPARE(cbor_value_get_array_length(&w.first, &len), CborErrorUnknownLength);
         }
-    } else if (cbor_value_get_type(&w.first) == CborMapType) {
+    }
+    else if (cbor_value_get_type(&w.first) == CborMapType)
+    {
         size_t len;
-        if (n >= 0) {
+        if (n >= 0)
+        {
             QVERIFY(cbor_value_is_length_known(&w.first));
             QCOMPARE(cbor_value_get_map_length(&w.first, &len), CborNoError);
             QCOMPARE(len, size_t(len));
-        } else {
+        }
+        else
+        {
             QVERIFY(!cbor_value_is_length_known(&w.first));
             QCOMPARE(cbor_value_get_map_length(&w.first, &len), CborErrorUnknownLength);
         }
-    } else if (cbor_value_is_text_string(&w.first) || cbor_value_is_byte_string(&w.first)) {
+    }
+    else if (cbor_value_is_text_string(&w.first) || cbor_value_is_byte_string(&w.first))
+    {
         size_t len;
         QCOMPARE(cbor_value_calculate_string_length(&w.first, &len), CborNoError);
-        if (cbor_value_is_length_known(&w.first)) {
+        if (cbor_value_is_length_known(&w.first))
+        {
             size_t len2;
             QCOMPARE(cbor_value_get_string_length(&w.first, &len2), CborNoError);
             QCOMPARE(len2, len);
-        } else {
+        }
+        else
+        {
             QCOMPARE(cbor_value_get_string_length(&w.first, &len), CborErrorUnknownLength);
         }
     }
@@ -316,14 +339,14 @@ void compareOne_real(const QByteArray &data, const QString &expected, int line, 
     QString decoded;
     err = parseOne(&w.first, &decoded);
     QVERIFY2(!err, QByteArray::number(line) + ": Got error \"" + cbor_error_string(err) +
-                   "\"; decoded stream:\n" + decoded.toLatin1());
+                       "\"; decoded stream:\n" + decoded.toLatin1());
     QCOMPARE(decoded, expected);
 
     // check that the errors are the same
     QCOMPARE(err2, err);
 
     // check that we consumed everything
-    QCOMPARE((void*)cbor_value_get_next_byte(&w.first), (void*)w.end());
+    QCOMPARE((void *)cbor_value_get_next_byte(&w.first), (void *)w.end());
 
     compareFailed = false;
 }
@@ -354,16 +377,20 @@ void tst_Parser::integers()
     cbor_value_get_raw_integer(&w.first, &raw);
     QCOMPARE(quint64(raw), expectedRaw);
 
-    if (isNegative) {
+    if (isNegative)
+    {
         QVERIFY(cbor_value_is_negative_integer(&w.first));
         QVERIFY(!cbor_value_is_unsigned_integer(&w.first));
-    } else {
+    }
+    else
+    {
         QVERIFY(!cbor_value_is_negative_integer(&w.first));
         QVERIFY(cbor_value_is_unsigned_integer(&w.first));
     }
 
     int64_t value;
-    if (inInt64Range) {
+    if (inInt64Range)
+    {
         cbor_value_get_int64(&w.first, &value);
         QCOMPARE(qint64(value), expectedValue);
     }
@@ -442,11 +469,16 @@ void tst_Parser::halfFloat()
 
     const double epsilon = ldexp(1.0, -25);
 
-    if (qIsNaN(expectedValue)) {
+    if (qIsNaN(expectedValue))
+    {
         QVERIFY(qIsNaN(value));
-    } else if (qIsInf(expectedValue)) {
+    }
+    else if (qIsInf(expectedValue))
+    {
         QVERIFY(value == (float)expectedValue);
-    } else {
+    }
+    else
+    {
         QVERIFY(qAbs(value - (float)expectedValue) < epsilon);
     }
 }
@@ -484,7 +516,10 @@ void tst_Parser::tagTags()
 
     compareOne("\xd9\xd9\xf7" + data, "55799(" + expected + ')');
     if (!compareFailed)
-        compareOne("\xd9\xd9\xf7" "\xd9\xd9\xf7" + data, "55799(55799(" + expected + "))");
+        compareOne("\xd9\xd9\xf7"
+                   "\xd9\xd9\xf7" +
+                       data,
+                   "55799(55799(" + expected + "))");
 }
 
 void tst_Parser::emptyContainers_data()
@@ -516,40 +551,50 @@ void tst_Parser::arrays()
     QFETCH(QString, expected);
 
     compareOneSize(1, "\x81" + data, '[' + expected + ']');
-    if (compareFailed) return;
+    if (compareFailed)
+        return;
 
     compareOneSize(2, "\x82" + data + data, '[' + expected + ", " + expected + ']');
-    if (compareFailed) return;
+    if (compareFailed)
+        return;
 
     // overlong length
     compareOneSize(1, "\x98\1" + data, "[_0 " + expected + ']');
-    if (compareFailed) return;
+    if (compareFailed)
+        return;
     compareOneSize(1, raw("\x99\0\1") + data, "[_1 " + expected + ']');
-    if (compareFailed) return;
+    if (compareFailed)
+        return;
     compareOneSize(1, raw("\x9a\0\0\0\1") + data, "[_2 " + expected + ']');
-    if (compareFailed) return;
+    if (compareFailed)
+        return;
     compareOneSize(1, raw("\x9b\0\0\0\0\0\0\0\1") + data, "[_3 " + expected + ']');
-    if (compareFailed) return;
+    if (compareFailed)
+        return;
 
     // medium-sized array: 32 elements (1 << 5)
     expected += ", ";
-    for (int i = 0; i < 5; ++i) {
+    for (int i = 0; i < 5; ++i)
+    {
         data += data;
         expected += expected;
     }
-    expected.chop(2);   // remove the last ", "
+    expected.chop(2); // remove the last ", "
     compareOneSize(32, "\x98\x20" + data, '[' + expected + ']');
-    if (compareFailed) return;
+    if (compareFailed)
+        return;
 
     // large array: 256 elements (32 << 3)
     expected += ", ";
-    for (int i = 0; i < 3; ++i) {
+    for (int i = 0; i < 3; ++i)
+    {
         data += data;
         expected += expected;
     }
-    expected.chop(2);   // remove the last ", "
+    expected.chop(2); // remove the last ", "
     compareOneSize(256, raw("\x99\1\0") + data, '[' + expected + ']');
-    if (compareFailed) return;
+    if (compareFailed)
+        return;
 }
 
 void tst_Parser::undefLengthArrays()
@@ -558,7 +603,8 @@ void tst_Parser::undefLengthArrays()
     QFETCH(QString, expected);
 
     compareOne("\x9f" + data + "\xff", "[_ " + expected + ']');
-    if (compareFailed) return;
+    if (compareFailed)
+        return;
 
     compareOne("\x9f" + data + data + "\xff", "[_ " + expected + ", " + expected + ']');
 }
@@ -569,34 +615,43 @@ void tst_Parser::nestedArrays()
     QFETCH(QString, expected);
 
     compareOneSize(1, "\x81\x81" + data, "[[" + expected + "]]");
-    if (compareFailed) return;
+    if (compareFailed)
+        return;
 
     compareOneSize(1, "\x81\x81\x81" + data, "[[[" + expected + "]]]");
-    if (compareFailed) return;
+    if (compareFailed)
+        return;
 
     compareOneSize(1, "\x81\x82" + data + data, "[[" + expected + ", " + expected + "]]");
-    if (compareFailed) return;
+    if (compareFailed)
+        return;
 
     compareOneSize(2, "\x82\x81" + data + data, "[[" + expected + "], " + expected + "]");
-    if (compareFailed) return;
+    if (compareFailed)
+        return;
 
     compareOneSize(2, "\x82\x81" + data + '\x81' + data, "[[" + expected + "], [" + expected + "]]");
-    if (compareFailed) return;
+    if (compareFailed)
+        return;
 
     // undefined length
     compareOneSize(-1, "\x9f\x9f" + data + data + "\xff\xff", "[_ [_ " + expected + ", " + expected + "]]");
-    if (compareFailed) return;
+    if (compareFailed)
+        return;
 
     compareOneSize(-1, "\x9f\x9f" + data + "\xff\x9f" + data + "\xff\xff", "[_ [_ " + expected + "], [_ " + expected + "]]");
-    if (compareFailed) return;
+    if (compareFailed)
+        return;
 
     compareOneSize(-1, "\x9f\x9f" + data + data + "\xff\x9f" + data + "\xff\xff",
-               "[_ [_ " + expected + ", " + expected + "], [_ " + expected + "]]");
-    if (compareFailed) return;
+                   "[_ [_ " + expected + ", " + expected + "], [_ " + expected + "]]");
+    if (compareFailed)
+        return;
 
     // mix them
     compareOneSize(1, "\x81\x9f" + data + "\xff", "[[_ " + expected + "]]");
-    if (compareFailed) return;
+    if (compareFailed)
+        return;
 
     compareOneSize(-1, "\x9f\x81" + data + "\xff", "[_ [" + expected + "]]");
 }
@@ -613,23 +668,34 @@ void tst_Parser::maps()
 
     // integer key
     compareOneSize(1, "\xa1\1" + data, "{1: " + expected + '}');
-    if (compareFailed) return;
+    if (compareFailed)
+        return;
 
     // string key
-    compareOneSize(1, "\xa1\x65" "Hello" + data, "{\"Hello\": " + expected + '}');
-    if (compareFailed) return;
+    compareOneSize(1, "\xa1\x65"
+                      "Hello" +
+                          data,
+                   "{\"Hello\": " + expected + '}');
+    if (compareFailed)
+        return;
 
     // map to self
     compareOneSize(1, "\xa1" + data + data, '{' + expected + ": " + expected + '}');
-    if (compareFailed) return;
+    if (compareFailed)
+        return;
 
     // two integer keys
     compareOneSize(2, "\xa2\1" + data + "\2" + data, "{1: " + expected + ", 2: " + expected + '}');
-    if (compareFailed) return;
+    if (compareFailed)
+        return;
 
     // OneSize integer and OneSize string key
-    compareOneSize(2, "\xa2\1" + data + "\x65" "Hello" + data, "{1: " + expected + ", \"Hello\": " + expected + '}');
-    if (compareFailed) return;
+    compareOneSize(2, "\xa2\1" + data + "\x65"
+                                        "Hello" +
+                          data,
+                   "{1: " + expected + ", \"Hello\": " + expected + '}');
+    if (compareFailed)
+        return;
 }
 
 void tst_Parser::undefLengthMaps()
@@ -639,13 +705,16 @@ void tst_Parser::undefLengthMaps()
 
     // integer key
     compareOne("\xbf\1" + data + '\xff', "{_ 1: " + expected + '}');
-    if (compareFailed) return;
+    if (compareFailed)
+        return;
 
     compareOne("\xbf\1" + data + '\2' + data + '\xff', "{_ 1: " + expected + ", 2: " + expected + '}');
-    if (compareFailed) return;
+    if (compareFailed)
+        return;
 
     compareOne("\xbf\1" + data + "\x65Hello" + data + '\xff', "{_ 1: " + expected + ", \"Hello\": " + expected + '}');
-    if (compareFailed) return;
+    if (compareFailed)
+        return;
 
     compareOne("\xbf\x65Hello" + data + '\1' + data + '\xff', "{_ \"Hello\": " + expected + ", 1: " + expected + '}');
 }
@@ -657,46 +726,58 @@ void tst_Parser::nestedMaps()
 
     // nested maps as values
     compareOneSize(1, "\xa1\1\xa1\2" + data, "{1: {2: " + expected + "}}");
-    if (compareFailed) return;
+    if (compareFailed)
+        return;
 
     compareOneSize(1, "\xa1\x65Hello\xa1\2" + data, "{\"Hello\": {2: " + expected + "}}");
-    if (compareFailed) return;
+    if (compareFailed)
+        return;
 
     compareOneSize(1, "\xa1\1\xa2\2" + data + '\x20' + data, "{1: {2: " + expected + ", -1: " + expected + "}}");
-    if (compareFailed) return;
+    if (compareFailed)
+        return;
 
     compareOneSize(2, "\xa2\1\xa1\2" + data + "\2\xa1\x20" + data, "{1: {2: " + expected + "}, 2: {-1: " + expected + "}}");
-    if (compareFailed) return;
+    if (compareFailed)
+        return;
 
     // nested maps as keys
     compareOneSize(1, "\xa1\xa1\xf4" + data + "\xf5", "{{false: " + expected + "}: true}");
-    if (compareFailed) return;
+    if (compareFailed)
+        return;
 
     compareOneSize(1, "\xa1\xa1" + data + data + "\xa1" + data + data,
-               "{{" + expected + ": " + expected + "}: {" + expected + ": " + expected + "}}");
-    if (compareFailed) return;
+                   "{{" + expected + ": " + expected + "}: {" + expected + ": " + expected + "}}");
+    if (compareFailed)
+        return;
 
     // undefined length
     compareOneSize(-1, "\xbf\1\xbf\2" + data + "\xff\xff", "{_ 1: {_ 2: " + expected + "}}");
-    if (compareFailed) return;
+    if (compareFailed)
+        return;
 
     compareOneSize(-1, "\xbf\1\xbf\2" + data + '\x20' + data + "\xff\xff", "{_ 1: {_ 2: " + expected + ", -1: " + expected + "}}");
-    if (compareFailed) return;
+    if (compareFailed)
+        return;
 
     compareOneSize(-1, "\xbf\1\xbf\2" + data + "\xff\2\xbf\x20" + data + "\xff\xff",
-               "{_ 1: {_ 2: " + expected + "}, 2: {_ -1: " + expected + "}}");
-    if (compareFailed) return;
+                   "{_ 1: {_ 2: " + expected + "}, 2: {_ -1: " + expected + "}}");
+    if (compareFailed)
+        return;
 
     compareOneSize(-1, "\xbf\xbf" + data + data + "\xff\xbf" + data + data + "\xff\xff",
-               "{_ {_ " + expected + ": " + expected + "}: {_ " + expected + ": " + expected + "}}");
-    if (compareFailed) return;
+                   "{_ {_ " + expected + ": " + expected + "}: {_ " + expected + ": " + expected + "}}");
+    if (compareFailed)
+        return;
 
     // mix them
     compareOneSize(1, "\xa1\1\xbf\2" + data + "\xff", "{1: {_ 2: " + expected + "}}");
-    if (compareFailed) return;
+    if (compareFailed)
+        return;
 
     compareOneSize(-1, "\xbf\1\xa1\2" + data + "\xff", "{_ 1: {2: " + expected + "}}");
-    if (compareFailed) return;
+    if (compareFailed)
+        return;
 }
 
 void tst_Parser::mapMixed_data()
@@ -712,72 +793,89 @@ void tst_Parser::mapsAndArrays()
 
     // arrays of maps
     compareOneSize(1, "\x81\xa1\1" + data, "[{1: " + expected + "}]");
-    if (compareFailed) return;
+    if (compareFailed)
+        return;
 
     compareOneSize(2, "\x82\xa1\1" + data + "\xa1\2" + data, "[{1: " + expected + "}, {2: " + expected + "}]");
-    if (compareFailed) return;
+    if (compareFailed)
+        return;
 
     compareOneSize(1, "\x81\xa2\1" + data + "\2" + data, "[{1: " + expected + ", 2: " + expected + "}]");
-    if (compareFailed) return;
+    if (compareFailed)
+        return;
 
     compareOneSize(-1, "\x9f\xa1\1" + data + "\xff", "[_ {1: " + expected + "}]");
-    if (compareFailed) return;
+    if (compareFailed)
+        return;
 
     compareOneSize(1, "\x81\xbf\1" + data + "\xff", "[{_ 1: " + expected + "}]");
-    if (compareFailed) return;
+    if (compareFailed)
+        return;
 
     compareOneSize(-1, "\x9f\xbf\1" + data + "\xff\xff", "[_ {_ 1: " + expected + "}]");
-    if (compareFailed) return;
+    if (compareFailed)
+        return;
 
     // maps of arrays
     compareOneSize(1, "\xa1\1\x81" + data, "{1: [" + expected + "]}");
-    if (compareFailed) return;
+    if (compareFailed)
+        return;
 
     compareOneSize(1, "\xa1\1\x82" + data + data, "{1: [" + expected + ", " + expected + "]}");
-    if (compareFailed) return;
+    if (compareFailed)
+        return;
 
     compareOneSize(2, "\xa2\1\x81" + data + "\x65Hello\x81" + data, "{1: [" + expected + "], \"Hello\": [" + expected + "]}");
-    if (compareFailed) return;
+    if (compareFailed)
+        return;
 
     compareOneSize(1, "\xa1\1\x9f" + data + "\xff", "{1: [_ " + expected + "]}");
-    if (compareFailed) return;
+    if (compareFailed)
+        return;
 
     compareOneSize(1, "\xa1\1\x9f" + data + data + "\xff", "{1: [_ " + expected + ", " + expected + "]}");
-    if (compareFailed) return;
+    if (compareFailed)
+        return;
 
     compareOneSize(-1, "\xbf\1\x81" + data + "\xff", "{_ 1: [" + expected + "]}");
-    if (compareFailed) return;
+    if (compareFailed)
+        return;
 
     compareOneSize(-1, "\xbf\1\x9f" + data + "\xff\xff", "{_ 1: [_ " + expected + "]}");
-    if (compareFailed) return;
+    if (compareFailed)
+        return;
 
     compareOneSize(-1, "\xbf\1\x9f" + data + data + "\xff\xff", "{_ 1: [_ " + expected + ", " + expected + "]}");
-    if (compareFailed) return;
+    if (compareFailed)
+        return;
 
     // mixed with indeterminate length strings
     compareOneSize(-1, "\xbf\1\x9f" + data + "\xff\x65Hello\xbf" + data + "\x7f\xff\xff\xff",
                    "{_ 1: [_ " + expected + "], \"Hello\": {_ " + expected + ": (_ )}}");
 }
 
-struct Input {
+struct Input
+{
     QByteArray data;
     int consumed;
 };
 
 static const CborParserOperations byteArrayOps = {
-    /* can_read_bytes = */ [](void *token, size_t len) {
+    /* can_read_bytes = */ [](void *token, size_t len)
+    {
         auto input = static_cast<Input *>(token);
         return input->data.size() - input->consumed >= int(len);
     },
-    /* read_bytes = */ [](void *token, void *dst, size_t offset, size_t len) {
+    /* read_bytes = */ [](void *token, void *dst, size_t offset, size_t len)
+    {
         auto input = static_cast<Input *>(token);
-        return memcpy(dst, input->data.constData() + input->consumed + offset, len);
-    },
-    /* advance_bytes = */ [](void *token, size_t len) {
+        return memcpy(dst, input->data.constData() + input->consumed + offset, len); },
+    /* advance_bytes = */ [](void *token, size_t len)
+    {
         auto input = static_cast<Input *>(token);
-        input->consumed += int(len);
-    },
-    /* transfer_string = */ [](void *token, const void **userptr, size_t offset, size_t len) {
+        input->consumed += int(len); },
+    /* transfer_string = */ [](void *token, const void **userptr, size_t offset, size_t len)
+    {
         // ###
         auto input = static_cast<Input *>(token);
         if (input->data.size() - input->consumed < int(len + offset))
@@ -785,16 +883,14 @@ static const CborParserOperations byteArrayOps = {
         input->consumed += int(offset);
         *userptr = input->data.constData() + input->consumed;
         input->consumed += int(len);
-        return CborNoError;
-    }
-};
+        return CborNoError; }};
 
 void tst_Parser::readerApi()
 {
     QFETCH(QByteArray, data);
     QFETCH(QString, expected);
 
-    Input input = { data, 0 };
+    Input input = {data, 0};
 
     CborParser parser;
     CborValue first;
@@ -822,13 +918,14 @@ void tst_Parser::reparse()
     QFETCH(QByteArray, data);
     QFETCH(QString, expected);
 
-    Input input = { QByteArray(), 0 };
+    Input input = {QByteArray(), 0};
     CborParser parser;
     CborValue first;
     CborError err = cbor_parser_init_reader(&byteArrayOps, &parser, &first, &input);
     QCOMPARE(err, CborErrorUnexpectedEOF);
 
-    for (int i = 0; i < data.size(); ++i) {
+    for (int i = 0; i < data.size(); ++i)
+    {
         input.data = data.left(i);
         err = cbor_value_reparse(&first);
         if (err != CborErrorUnexpectedEOF)
@@ -873,11 +970,12 @@ static void chunkedStringTest(const QByteArray &data, const QString &concatenate
 
     err = cbor_value_begin_string_iteration(&value);
     QVERIFY2(!err, QByteArray("Got error \"") + cbor_error_string(err) + "\"");
-    forever {
+    forever
+    {
         QString decoded;
         err = parseOneChunk(&value, &decoded);
         if (err == CborErrorNoMoreStringChunks)
-            break;          // last chunk
+            break; // last chunk
 
         QVERIFY2(!err, QByteArray("Got error \"") + cbor_error_string(err) + "\"");
 
@@ -902,7 +1000,8 @@ static void chunkedStringTest(const QByteArray &data, const QString &concatenate
         buffer[int(n)] = 0xff;
         buffer2[int(n)] = 0xff;
         QString formatted;
-        if (cbor_value_is_byte_string(&copy)) {
+        if (cbor_value_is_byte_string(&copy))
+        {
             err = cbor_value_copy_byte_string(&copy, (uint8_t *)buffer.data(), &nn, nullptr);
             QVERIFY2(!err, QByteArray("Got error \"") + cbor_error_string(err) + "\"");
             QCOMPARE(nn, n);
@@ -912,7 +1011,9 @@ static void chunkedStringTest(const QByteArray &data, const QString &concatenate
             // repeat by allowing the null termination
             nn = n + 1;
             err = cbor_value_copy_byte_string(&copy, (uint8_t *)buffer2.data(), &nn, nullptr);
-        } else {
+        }
+        else
+        {
             err = cbor_value_copy_text_string(&copy, buffer.data(), &n, nullptr);
             QVERIFY2(!err, QByteArray("Got error \"") + cbor_error_string(err) + "\"");
             QCOMPARE(nn, n);
@@ -952,7 +1053,7 @@ static void chunkedStringTest(const QByteArray &data, const QString &concatenate
 
     err = cbor_value_leave_container(&w.first, &value);
     QVERIFY2(!err, QByteArray("Got error \"") + cbor_error_string(err) + "\"");
-    QCOMPARE((void*)cbor_value_get_next_byte(&w.first), (void*)w.end());
+    QCOMPARE((void *)cbor_value_get_next_byte(&w.first), (void *)w.end());
 }
 
 void tst_Parser::chunkedString()
@@ -993,7 +1094,9 @@ void tst_Parser::stringLength_data()
     QTest::newRow("bytestring1") << raw("\x41 ") << 1;
     QTest::newRow("bytestring1-nul") << raw("\x41\0") << 1;
     QTest::newRow("bytestring5") << raw("\x45Hello") << 5;
-    QTest::newRow("bytestring24") << raw("\x58\x18""123456789012345678901234") << 24;
+    QTest::newRow("bytestring24") << raw("\x58\x18"
+                                         "123456789012345678901234")
+                                  << 24;
     QTest::newRow("bytestring256") << raw("\x59\1\0") + QByteArray(256, '3') << 256;
 
     // text strings
@@ -1001,7 +1104,9 @@ void tst_Parser::stringLength_data()
     QTest::newRow("textstring1") << raw("\x61 ") << 1;
     QTest::newRow("textstring1-nul") << raw("\x61\0") << 1;
     QTest::newRow("textstring5") << raw("\x65Hello") << 5;
-    QTest::newRow("textstring24") << raw("\x78\x18""123456789012345678901234") << 24;
+    QTest::newRow("textstring24") << raw("\x78\x18"
+                                         "123456789012345678901234")
+                                  << 24;
     QTest::newRow("textstring256") << raw("\x79\1\0") + QByteArray(256, '3') << 256;
 
     // strings with overlong length
@@ -1031,10 +1136,18 @@ void tst_Parser::stringLength_data()
     QTest::newRow("_emptytextstring3") << raw("\x7f\x60\x60\xff") << 0;
     QTest::newRow("_bytestring5*2") << raw("\x5f\x43Hel\x42lo\xff") << 5;
     QTest::newRow("_textstring5*2") << raw("\x7f\x63Hel\x62lo\xff") << 5;
-    QTest::newRow("_bytestring5*5") << raw("\x5f\x41H\x41""e\x41l\x41l\x41o\xff") << 5;
-    QTest::newRow("_textstring5*5") << raw("\x7f\x61H\x61""e\x61l\x61l\x61o\xff") << 5;
-    QTest::newRow("_bytestring5*6") << raw("\x5f\x41H\x41""e\x40\x41l\x41l\x41o\xff") << 5;
-    QTest::newRow("_textstring5*6") << raw("\x7f\x61H\x61""e\x61l\x60\x61l\x61o\xff") << 5;
+    QTest::newRow("_bytestring5*5") << raw("\x5f\x41H\x41"
+                                           "e\x41l\x41l\x41o\xff")
+                                    << 5;
+    QTest::newRow("_textstring5*5") << raw("\x7f\x61H\x61"
+                                           "e\x61l\x61l\x61o\xff")
+                                    << 5;
+    QTest::newRow("_bytestring5*6") << raw("\x5f\x41H\x41"
+                                           "e\x40\x41l\x41l\x41o\xff")
+                                    << 5;
+    QTest::newRow("_textstring5*6") << raw("\x7f\x61H\x61"
+                                           "e\x61l\x60\x61l\x61o\xff")
+                                    << 5;
 }
 
 void tst_Parser::stringLength()
@@ -1051,11 +1164,11 @@ void tst_Parser::stringLength()
     QVERIFY2(!err, QByteArray("Got error \"") + cbor_error_string(err) + "\"");
     QCOMPARE(result, size_t(expected));
 
-    if (cbor_value_is_length_known(&w.first)) {
+    if (cbor_value_is_length_known(&w.first))
+    {
         QCOMPARE(cbor_value_get_string_length(&w.first, &result), CborNoError);
         QCOMPARE(result, size_t(expected));
     }
-
 }
 
 void tst_Parser::stringCompare_data()
@@ -1080,8 +1193,12 @@ void tst_Parser::stringCompare_data()
     QTest::newRow("same-short-short") << raw("\x65Hello") << "Hello" << true;
     QTest::newRow("same-_short*1-short") << raw("\x7f\x65Hello\xff") << "Hello" << true;
     QTest::newRow("same-_short*2-short") << raw("\x7f\x63Hel\x62lo\xff") << "Hello" << true;
-    QTest::newRow("same-_short*5-short") << raw("\x7f\x61H\x61""e\x61l\x61l\x61o\xff") << "Hello" << true;
-    QTest::newRow("same-_short*8-short") << raw("\x7f\x61H\x60\x61""e\x60\x61l\x61l\x60\x61o\xff") << "Hello" << true;
+    QTest::newRow("same-_short*5-short") << raw("\x7f\x61H\x61"
+                                                "e\x61l\x61l\x61o\xff")
+                                         << "Hello" << true;
+    QTest::newRow("same-_short*8-short") << raw("\x7f\x61H\x60\x61"
+                                                "e\x60\x61l\x61l\x60\x61o\xff")
+                                         << "Hello" << true;
     QTest::newRow("same-long-long") << raw("\x78\x2aGood morning, good afternoon and goodnight")
                                     << "Good morning, good afternoon and goodnight" << true;
     QTest::newRow("same-_long*1-long") << raw("\x7f\x78\x2aGood morning, good afternoon and goodnight\xff")
@@ -1093,8 +1210,12 @@ void tst_Parser::stringCompare_data()
     QTest::newRow("diff-same-length-short-short") << raw("\x65Hello") << "World" << false;
     QTest::newRow("diff-same-length-_short*1-short") << raw("\x7f\x65Hello\xff") << "World" << false;
     QTest::newRow("diff-same-length-_short*2-short") << raw("\x7f\x63Hel\x62lo\xff") << "World" << false;
-    QTest::newRow("diff-same-length-_short*5-short") << raw("\x7f\x61H\x61""e\x61l\x61l\x61o\xff") << "World" << false;
-    QTest::newRow("diff-same-length-_short*8-short") << raw("\x7f\x61H\x60\x61""e\x60\x61l\x61l\x60\x61o\xff") << "World" << false;
+    QTest::newRow("diff-same-length-_short*5-short") << raw("\x7f\x61H\x61"
+                                                            "e\x61l\x61l\x61o\xff")
+                                                     << "World" << false;
+    QTest::newRow("diff-same-length-_short*8-short") << raw("\x7f\x61H\x60\x61"
+                                                            "e\x60\x61l\x61l\x60\x61o\xff")
+                                                     << "World" << false;
     QTest::newRow("diff-same-length-long-long") << raw("\x78\x2aGood morning, good afternoon and goodnight")
                                                 << "Good morning, good afternoon and goodnight, world" << false;
     QTest::newRow("diff-same-length-_long*1-long") << raw("\x7f\x78\x2aGood morning, good afternoon and goodnight\xff")
@@ -1106,8 +1227,12 @@ void tst_Parser::stringCompare_data()
     QTest::newRow("diff-diff-length-short-short") << raw("\x65Hello") << "Hello World" << false;
     QTest::newRow("diff-diff-length-_short*1-short") << raw("\x7f\x65Hello\xff") << "Hello World" << false;
     QTest::newRow("diff-diff-length-_short*2-short") << raw("\x7f\x63Hel\x62lo\xff") << "Hello World" << false;
-    QTest::newRow("diff-diff-length-_short*5-short") << raw("\x7f\x61H\x61""e\x61l\x61l\x61o\xff") << "Hello World" << false;
-    QTest::newRow("diff-diff-length-_short*8-short") << raw("\x7f\x61H\x60\x61""e\x60\x61l\x61l\x60\x61o\xff") << "Hello World" << false;
+    QTest::newRow("diff-diff-length-_short*5-short") << raw("\x7f\x61H\x61"
+                                                            "e\x61l\x61l\x61o\xff")
+                                                     << "Hello World" << false;
+    QTest::newRow("diff-diff-length-_short*8-short") << raw("\x7f\x61H\x60\x61"
+                                                            "e\x60\x61l\x61l\x60\x61o\xff")
+                                                     << "Hello World" << false;
     QTest::newRow("diff-diff-length-long-long") << raw("\x78\x2aGood morning, good afternoon and goodnight")
                                                 << "Good morning, good afternoon and goodnight World" << false;
     QTest::newRow("diff-diff-length-_long*1-long") << raw("\x7f\x78\x2aGood morning, good afternoon and goodnight\xff")
@@ -1146,10 +1271,12 @@ void compareOneString(const QByteArray &data, const QString &string, bool expect
     QVERIFY2(!err, QByteArray::number(line) + ": Got error \"" + cbor_error_string(err) + "\"");
     QCOMPARE(result, expected);
 
-    if (expected) {
+    if (expected)
+    {
         size_t len;
         cbor_value_skip_tag(&w.first);
-        if (cbor_value_is_length_known(&w.first)) {
+        if (cbor_value_is_length_known(&w.first))
+        {
             QCOMPARE(cbor_value_get_string_length(&w.first, &len), CborNoError);
             QCOMPARE(int(len), bastring.size());
         }
@@ -1168,11 +1295,13 @@ void tst_Parser::stringCompare()
     QFETCH(bool, expected);
 
     compareOneString(data, string, expected);
-    if (compareFailed) return;
+    if (compareFailed)
+        return;
 
     // tag it
     compareOneString("\xc1" + data, string, expected);
-    if (compareFailed) return;
+    if (compareFailed)
+        return;
 
     compareOneString("\xc1\xc2" + data, string, expected);
 }
@@ -1207,7 +1336,10 @@ void tst_Parser::mapFind_data()
     QTest::newRow("absent-string-_emptyarray") << raw("\xa1\x68haystack\x9f\xff") << false;
     QTest::newRow("absent-string-array1") << raw("\xa1\x68haystack\x81\0") << false;
     QTest::newRow("absent-string-array2") << raw("\xa1\x68haystack\x85\0\1\2\3\4") << false;
-    QTest::newRow("absent-string-array3") << raw("\xa1\x68haystack\x85\x63one\x63two\x65three\x64""four\x64""five") << false;
+    QTest::newRow("absent-string-array3") << raw("\xa1\x68haystack\x85\x63one\x63two\x65three\x64"
+                                                 "four\x64"
+                                                 "five")
+                                          << false;
 
     QTest::newRow("absent-string-emptymap") << raw("\xa1\x68haystack\xa0") << false;
     QTest::newRow("absent-string-_emptymap") << raw("\xa1\x68haystack\xbf\xff") << false;
@@ -1221,8 +1353,14 @@ void tst_Parser::mapFind_data()
     QTest::newRow("chunked") << raw("\xa1\x7f\x66needle\xff\xd8\x2a\x68haystack") << true;
     QTest::newRow("chunked*2") << raw("\xa1\x7f\x60\x66needle\xff\xd8\x2a\x68haystack") << true;
     QTest::newRow("chunked*2bis") << raw("\xa1\x7f\x66needle\x60\xff\xd8\x2a\x68haystack") << true;
-    QTest::newRow("chunked*3") << raw("\xa1\x7f\x62ne\x62""ed\x62le\xff\xd8\x2a\x68haystack") << true;
-    QTest::newRow("chunked*8") << raw("\xa1\x7f\x61n\x61""e\x60\x61""e\x61""d\x60\x62le\x60\xff\xd8\x2a\x68haystack") << true;
+    QTest::newRow("chunked*3") << raw("\xa1\x7f\x62ne\x62"
+                                      "ed\x62le\xff\xd8\x2a\x68haystack")
+                               << true;
+    QTest::newRow("chunked*8") << raw("\xa1\x7f\x61n\x61"
+                                      "e\x60\x61"
+                                      "e\x61"
+                                      "d\x60\x62le\x60\xff\xd8\x2a\x68haystack")
+                               << true;
 
     QTest::newRow("1before") << raw("\xa2\x68haystack\x66needle\x66needle\xd8\x2a\x68haystack") << true;
     QTest::newRow("tagged-1before") << raw("\xa2\xc1\x68haystack\x66needle\xc1\x66needle\xd8\x2a\x68haystack") << true;
@@ -1250,7 +1388,8 @@ void tst_Parser::mapFind()
     err = cbor_value_map_find_value(&w.first, "needle", &element);
     QVERIFY2(!err, QByteArray("Got error \"") + cbor_error_string(err) + "\"");
 
-    if (expected) {
+    if (expected)
+    {
         QCOMPARE(int(element.type), int(CborTagType));
 
         CborTag tag;
@@ -1262,7 +1401,9 @@ void tst_Parser::mapFind()
         err = cbor_value_text_string_equals(&element, "haystack", &equals);
         QVERIFY2(!err, QByteArray("Got error \"") + cbor_error_string(err) + "\"");
         QVERIFY(equals);
-    } else {
+    }
+    else
+    {
         QCOMPARE(int(element.type), int(CborInvalidType));
     }
 }
@@ -1270,7 +1411,7 @@ void tst_Parser::mapFind()
 void tst_Parser::checkedIntegers_data()
 {
     QTest::addColumn<QByteArray>("data");
-    QTest::addColumn<QVariant>("result");       // QVariant so we can note numbers out of int64_t range
+    QTest::addColumn<QVariant>("result"); // QVariant so we can note numbers out of int64_t range
 
     QTest::newRow("0") << raw("\x00") << QVariant(Q_INT64_C(0));
     QTest::newRow("1") << raw("\x01") << QVariant(Q_INT64_C(1));
@@ -1285,8 +1426,10 @@ void tst_Parser::checkedIntegers_data()
     QTest::newRow("INT32_MAX+1") << raw("\x1a\x80\x00\x00\x00") << QVariant(Q_INT64_C(2147483648));
     QTest::newRow("UINT32_MAX") << raw("\x1a\xff\xff\xff\xff") << QVariant(Q_INT64_C(4294967295));
     QTest::newRow("UINT32_MAX+1") << raw("\x1b\0\0\0\1\0\0\0\0") << QVariant(Q_INT64_C(4294967296));
-    QTest::newRow("UINT64_MAX") << raw("\x1b" "\xff\xff\xff\xff" "\xff\xff\xff\xff")
-                                << QVariant();  // out of range
+    QTest::newRow("UINT64_MAX") << raw("\x1b"
+                                       "\xff\xff\xff\xff"
+                                       "\xff\xff\xff\xff")
+                                << QVariant(); // out of range
 
     // negative integers
     QTest::newRow("-1") << raw("\x20") << QVariant(Q_INT64_C(-1));
@@ -1301,15 +1444,23 @@ void tst_Parser::checkedIntegers_data()
     QTest::newRow("INT32_MIN-1") << raw("\x3a\x80\x00\x00\x00") << QVariant(Q_INT64_C(-2147483649));
     QTest::newRow("-UINT32_MAX") << raw("\x3a\xff\xff\xff\xff") << QVariant(Q_INT64_C(-4294967296));
     QTest::newRow("-UINT32_MAX-1") << raw("\x3b\0\0\0\1\0\0\0\0") << QVariant(Q_INT64_C(-4294967297));
-    QTest::newRow("INT64_MIN+1") << raw("\x3b\x7f\xff\xff\xff""\xff\xff\xff\xfe")
-                               << QVariant(std::numeric_limits<qint64>::min() + 1);
-    QTest::newRow("INT64_MIN") << raw("\x3b\x7f\xff\xff\xff""\xff\xff\xff\xff")
+    QTest::newRow("INT64_MIN+1") << raw("\x3b\x7f\xff\xff\xff"
+                                        "\xff\xff\xff\xfe")
+                                 << QVariant(std::numeric_limits<qint64>::min() + 1);
+    QTest::newRow("INT64_MIN") << raw("\x3b\x7f\xff\xff\xff"
+                                      "\xff\xff\xff\xff")
                                << QVariant(std::numeric_limits<qint64>::min());
-    QTest::newRow("INT64_MIN-1") << raw("\x3b\x80\0\0\0""\0\0\0\0") << QVariant();  // out of range
-    QTest::newRow("-UINT64_MAX") << raw("\x3b" "\xff\xff\xff\xff" "\xff\xff\xff\xfe")
-                                   << QVariant();   // out of range
-    QTest::newRow("-UINT64_MAX+1") << raw("\x3b" "\xff\xff\xff\xff" "\xff\xff\xff\xff")
-                                   << QVariant();   // out of range
+    QTest::newRow("INT64_MIN-1") << raw("\x3b\x80\0\0\0"
+                                        "\0\0\0\0")
+                                 << QVariant(); // out of range
+    QTest::newRow("-UINT64_MAX") << raw("\x3b"
+                                        "\xff\xff\xff\xff"
+                                        "\xff\xff\xff\xfe")
+                                 << QVariant(); // out of range
+    QTest::newRow("-UINT64_MAX+1") << raw("\x3b"
+                                          "\xff\xff\xff\xff"
+                                          "\xff\xff\xff\xff")
+                                   << QVariant(); // out of range
 }
 
 void tst_Parser::checkedIntegers()
@@ -1324,17 +1475,23 @@ void tst_Parser::checkedIntegers()
 
     int64_t v;
     err = cbor_value_get_int64_checked(&w.first, &v);
-    if (result.isNull()) {
+    if (result.isNull())
+    {
         QCOMPARE(err, CborErrorDataTooLarge);
-    } else {
+    }
+    else
+    {
         QCOMPARE(v, expected);
     }
 
     int v2;
     err = cbor_value_get_int_checked(&w.first, &v2);
-    if (result.isNull() || expected < std::numeric_limits<int>::min() || expected > std::numeric_limits<int>::max()) {
+    if (result.isNull() || expected < std::numeric_limits<int>::min() || expected > std::numeric_limits<int>::max())
+    {
         QCOMPARE(err, CborErrorDataTooLarge);
-    } else {
+    }
+    else
+    {
         QCOMPARE(int64_t(v2), expected);
     }
 }
@@ -1375,19 +1532,22 @@ void tst_Parser::validation()
     CborError err3 = cbor_value_validate(&w.first, CborValidateBasic);
     err = parseOne(&w.first, &decoded);
     QCOMPARE(err, expectedError);
-    if (!QByteArray(QTest::currentDataTag()).contains("utf8")) {
+    if (!QByteArray(QTest::currentDataTag()).contains("utf8"))
+    {
         QCOMPARE(err2, expectedError);
         QCOMPARE(err3, expectedError);
     }
 
     // see if we've got a map
-    if (QByteArray(QTest::currentDataTag()).startsWith("map")) {
-        w.init(data, uint32_t(flags));      // reinit
+    if (QByteArray(QTest::currentDataTag()).startsWith("map"))
+    {
+        w.init(data, uint32_t(flags)); // reinit
         QVERIFY(cbor_value_is_array(&w.first));
 
         CborValue map;
         CborError err = cbor_value_enter_container(&w.first, &map);
-        if (err == CborNoError) {
+        if (err == CborNoError)
+        {
             QVERIFY(cbor_value_is_map(&map));
             CborValue element;
             err = cbor_value_map_find_value(&map, "foobar", &element);
@@ -1451,9 +1611,9 @@ void tst_Parser::strictValidation_data()
     QTest::newRow("overlong-fp-+inf") << raw("\xfb\x7f\xf0\0\0\0\0\0\0") << int(CborValidateCanonicalFormat) << CborErrorOverlongEncoding;
 
     // canonical - lengths
-    QByteArray data24(24, 0x20);    // also decodes as -1
-    QByteArray data256(256, 0x40);  // also decodes as h''
-    QByteArray data65536(65536, 0x60);// also decodes as ""
+    QByteArray data24(24, 0x20);       // also decodes as -1
+    QByteArray data256(256, 0x40);     // also decodes as h''
+    QByteArray data65536(65536, 0x60); // also decodes as ""
     QTest::newRow("bytearray-0") << raw("\x40") << int(CborValidateCanonicalFormat) << CborNoError;
     QTest::newRow("bytearray-24") << (raw("\x58\x18") + data24) << int(CborValidateCanonicalFormat) << CborNoError;
     QTest::newRow("bytearray-256") << (raw("\x59\1\0") + data256) << int(CborValidateCanonicalFormat) << CborNoError;
@@ -1502,12 +1662,13 @@ void tst_Parser::strictValidation_data()
 
     // we need unique, sorted, string keys for map
     // we'll make all key-value pairs a total of 4 bytes
-    char mapentry[] = { 0x62, 0, 0, 0x20 };
+    char mapentry[] = {0x62, 0, 0, 0x20};
     QByteArray mapdata24(24 * sizeof(mapentry), Qt::Uninitialized);
     QByteArray mapdata256(256 * sizeof(mapentry), Qt::Uninitialized);
     char *mapdata24ptr = mapdata24.data();
     char *mapdata256ptr = mapdata256.data();
-    for (int i = 0; i < 256; ++i) {
+    for (int i = 0; i < 256; ++i)
+    {
         mapentry[1] = 'A' + (i >> 4);
         mapentry[2] = 'a' + (i & 0xf);
         memcpy(mapdata256ptr + i * sizeof(mapentry), mapentry, sizeof(mapentry));
@@ -1789,10 +1950,12 @@ void tst_Parser::incompleteData()
     QFETCH(QByteArray, data);
     QFETCH(QString, expected);
 
-    for (int len = 0; len < data.length() - 1; ++len) {
+    for (int len = 0; len < data.length() - 1; ++len)
+    {
         ParserWrapper w;
         CborError err = w.init(data.constData(), len);
-        if (!err) {
+        if (!err)
+        {
             QString decoded;
             err = parseOne(&w.first, &decoded);
         }
@@ -1894,7 +2057,8 @@ void tst_Parser::recursionLimit()
     QCOMPARE(err, CborErrorNestingTooDeep);
 
     it = w.first;
-    if (cbor_value_is_map(&it)) {
+    if (cbor_value_is_map(&it))
+    {
         CborValue dummy;
         err = cbor_value_map_find_value(&it, "foo", &dummy);
         QCOMPARE(err, CborErrorNestingTooDeep);

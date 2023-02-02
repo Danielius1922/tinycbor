@@ -12,7 +12,7 @@ string(REGEX MATCH "MSVC" CMAKE_COMPILER_IS_MSVC "${CMAKE_C_COMPILER_ID}")
 
 set(TINYCBOR_FREESTANDING_BUILD_ENABLED OFF CACHE BOOL "Make freestanding build.")
 
-option(ENABLE_EXECUTABLES "Build TinyCBOR programs." ON)
+option(ENABLE_TOOLS "Build TinyCBOR tools." ON)
 if (CMAKE_COMPILER_IS_MSVC)
     option(ENABLE_TESTING "Build TinyCBOR tests." OFF)
 else()
@@ -131,7 +131,7 @@ macro(tinycbor_target_compile_and_link_options TARGET)
     target_link_options(${TARGET} PRIVATE "$<$<OR:$<CONFIG:Release>,$<CONFIG:RelWithDebInfo>,$<CONFIG:MinSizeRel>>:${TINYCBOR_LINK_OPTIONS_RELEASE}>")
 endmacro()
 
-if(USE_STATIC_TINYCBOR_LIBRARY)
+if (USE_STATIC_TINYCBOR_LIBRARY)
     add_library(${tinycbor_static_target} STATIC ${TINYCBOR_SOURCES})
     set_target_properties(${tinycbor_static_target} PROPERTIES OUTPUT_NAME tinycbor)
     tinycbor_target_compile_and_link_options(${tinycbor_static_target})
@@ -143,7 +143,7 @@ if(USE_STATIC_TINYCBOR_LIBRARY)
     endif()
 endif()
 
-if(USE_SHARED_TINYCBOR_LIBRARY)
+if (USE_SHARED_TINYCBOR_LIBRARY)
     add_library(${tinycbor_target} SHARED ${TINYCBOR_SOURCES})
     set_target_properties(${tinycbor_target}
         PROPERTIES VERSION "${TINYCBOR_VERSION}"
@@ -161,7 +161,7 @@ if(USE_SHARED_TINYCBOR_LIBRARY)
     endif()
 endif()
 
-if (ENABLE_EXECUTABLES)
+if (ENABLE_TOOLS)
     set(TINYCBOR_TOOLS_DIR ${TINYCBOR_ROOT_DIR}/tools)
     find_package(cJSON)
 
@@ -173,16 +173,16 @@ if (ENABLE_EXECUTABLES)
         set_target_properties(json2cbor PROPERTIES INSTALL_RPATH_USE_LINK_PATH ON)
         tinycbor_target_compile_and_link_options(json2cbor)
 
-        list(APPEND TINYCBOR_EXECUTABLES json2cbor)
+        list(APPEND TINYCBOR_TOOLS json2cbor)
     endif()
 
+    # cbordump
     if (NOT TINYCBOR_FREESTANDING_BUILD_ENABLED)
-        # cbordump
         add_executable(cbordump ${TINYCBOR_TOOLS_DIR}/cbordump/cbordump.c)
         target_link_libraries(cbordump PRIVATE ${tinycbor_target})
         tinycbor_target_compile_and_link_options(cbordump)
 
-        list(APPEND TINYCBOR_EXECUTABLES cbordump)
+        list(APPEND TINYCBOR_TOOLS cbordump)
     endif()
 endif()
 
@@ -204,9 +204,9 @@ foreach(target IN LISTS TINYCBOR_LIBRARIES)
     )
 endforeach()
 
-foreach(exe IN LISTS TINYCBOR_EXECUTABLES)
+foreach(tool IN LISTS TINYCBOR_TOOLS)
     install(
-        TARGETS ${exe}
+        TARGETS ${tool}
         EXPORT TinyCBORTargets
         DESTINATION bin
         PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
