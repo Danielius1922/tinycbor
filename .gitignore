@@ -73,9 +73,11 @@ tinycbor.pc
 *.map
 
 bin
+build
 doc
 lib
 src/cjson
 src/doxygen.log
 !/Makefile
 .config
+.vscode

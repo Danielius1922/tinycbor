@@ -1,13 +1,56 @@
 Concise Binary Object Representation (CBOR) Library
----------------------------------------------------
+===================================================
 
-To build TinyCBOR:
+Build TinyCBOR with Make
+------------------------
 
+```bash
   make
+```
 
 If you want to change the compiler or pass extra compiler flags:
 
+```bash
   make CC=clang CFLAGS="-m32 -Oz" LDFLAGS="-m32"
+```
 
-Documentation: https://intel.github.io/tinycbor/current/
+Build TinyCBOR with CMake
+-------------------------
 
+```bash
+mkdir build
+cd build
+cmake --build ..
+```
+
+### Compilation options
+
+* Debug build:
+  
+```bash
+cmake --build -DCMAKE_BUILD_TYPE=Debug ..
+```
+
+* Release build:
+  
+```bash
+cmake --build -DCMAKE_BUILD_TYPE=Release ..
+```
+
+
+TODO
+
+### Testing
+
+TODO
+
+### Installation
+
+```bash
+cmake --install .
+```
+
+Documentation
+-------------
+
+<https://intel.github.io/tinycbor/current/>
