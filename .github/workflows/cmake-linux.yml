@@ -5,9 +5,9 @@ name: CMake building linux
 on:
   # Triggers the workflow on push or pull request events but only for the master branch
   push:
-    branches: [master]
-  pull_request:
-    branches: [master]
+  # branches: [master]
+  # pull_request:
+  # branches: [master]
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
@@ -35,11 +35,14 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Use clang
+      - name: Determine compiler
         id: cmake_flags
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.clang }}
         run: |
           echo compiler='-DCMAKE_CXX_COMPILER=clang++ -DCMAKE_C_COMPILER=clang' >> $GITHUB_OUTPUT
+
+      - name: Install Qt5 for tests
+        uses: jurplel/install-qt-action/@v3
 
       - name: Build unit tests
         run: |
